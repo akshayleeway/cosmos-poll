@@ -1,10 +1,10 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult ,WasmMsg ,CosmosMsg};
 use cw2::set_contract_version;
-
+use serde::{Deserialize, Serialize};
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, GetPollResponse, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, GetPollResponse, InstantiateMsg, QueryMsg ,};
 use crate::state::{Config, Poll, CONFIG, POLLS};
 
 const CONTRACT_NAME: &str = "crates.io:zero-to-hero";
@@ -44,6 +44,33 @@ pub fn execute(
         ExecuteMsg::Vote { question, choice } => execute_vote(deps, env, info, question, choice),
     }
 }
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum OtherContractMsg {
+    SomeFunctionCall {},
+}
+
+pub fn execute_call_another_contract(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+) -> Result<Response, String> {
+    let contract_address = "address_of_another_contract".to_string(); // Replace with the actual address of the other contract
+
+    // Create a CosmosMsg to call the function of the other contract
+    let msg = WasmMsg::Execute {
+        contract_addr: contract_address.clone(),
+        msg: to_binary(&OtherContractMsg::SomeFunctionCall {}).unwrap(),
+        funds : vec![],
+    };
+
+    // Create a CosmosMsg::Wasm variant
+    let execute_msg = CosmosMsg::Wasm(msg);
+
+    // Return the response with the execute_msg as a sub-message
+    Ok(Response::new().add_message(execute_msg).add_attribute("action", "call_another_contract"))
+}
+
 
 fn execute_create_poll(
     deps: DepsMut,
